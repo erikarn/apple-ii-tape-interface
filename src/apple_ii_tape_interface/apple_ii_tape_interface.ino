@@ -27,14 +27,14 @@ void setup() {
    * data file and know how long of a header we need to provide!
    */
   new_cassette_data_init();
-  new_cassette_period_length_set(128); // XXX should be 128 normally!
+  new_cassette_period_length_set(64); // ~ 10 seconds
   new_cassette_period_set_pre_blank(10);
   new_cassette_period_set_post_blank(10);
 
   // For now, pre-load a single file
   file_open();
   file_size = file_get_size();
-  new_cassette_data_set_length(file_size + 1L);
+  new_cassette_data_set_length(file_size + 1L); // Include the checksum byte!
 
   // Start the cassette playback with the above info
   cassette_new_start();

@@ -162,7 +162,7 @@ pin_flip(void)
 void
 cassette_new_isr(void)
 {
-  unsigned long fudgeTime = micros();         //fudgeTime is used to reduce length of the next period by the time taken to process the ISR
+  unsigned long fudgeTime = micros(); //fudgeTime is used to reduce length of the next period by the time taken to process the ISR
 
   long next_timer_interval = 0;
 
@@ -318,7 +318,7 @@ done:
   } else {
     fudgeTime = micros() - fudgeTime; //Compensate for stupidly long ISR
     if (next_timer_interval < fudgeTime) {
-      // XXX We messed up, need to flag this
+      // XXX shouldn't happen unless someone explicitly wanted a period of '1'
       Timer1.setPeriod(1);
     } else {
       Timer1.setPeriod(next_timer_interval - fudgeTime);
@@ -327,6 +327,9 @@ done:
   interrupts();
 }
 
+/*
+ * Called during power-on!
+ */
 void
 cassette_new_init(void)
 {
