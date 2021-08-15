@@ -1,14 +1,9 @@
 #include "config.h"
 
-#include "cassette.h"
 #include "buttons.h"
-
-//#include "apple_invaders_disp.h"
 
 // quick hack - for now, manually need to load this at 0x3fd; I'll look
 // into a c2d style loader wrapper later
-
-static const PROGMEM uint8_t apple_invaders_bin[] = { 0x1, 0x2, 0x3, 0x4 };
 
 void setup() {
   unsigned char checksum = 0xff;
@@ -16,7 +11,6 @@ void setup() {
   
   Serial.begin(9600);
   display_setup();
-  cassette_setup();
   cassette_new_init();
   buttons_setup();
   display_clear();
@@ -28,8 +22,8 @@ void setup() {
    */
   new_cassette_data_init();
   new_cassette_period_length_set(31); // ~ 10 seconds
-  new_cassette_period_set_pre_blank(10);
-  new_cassette_period_set_post_blank(10);
+  new_cassette_period_set_pre_blank(10); // 1 second
+  new_cassette_period_set_post_blank(10); // 1 second
 
   // For now, pre-load a single file - apple_invaders.bin
   // to load/run in monitor - 3FD.537CR 3FDG
@@ -73,35 +67,6 @@ void setup() {
   Serial.println("--\nFinished sending.");
 }
 
-void
-send_file_blocking(void)
-{
-    Serial.print("Starting send\n");
-    Serial.print("File size: ");
-    Serial.print(sizeof(apple_invaders_bin));
-    Serial.print("\n");
-    Serial.flush();
 
-    // Disable interrupts during sending audio
-    noInterrupts();
-
-    // 128 periods before data block
-    cassette_header(128);
-
-    // For now our only data block is the program we've hard coded, it needs
-    // to be loaded at 0x03fd.
-    //
-    // So at the monitor (not BASIC!), type:
-    //
-    // 3FD.537CR 3FDG
-    //
-    cassette_write_block_progmem(apple_invaders_bin, sizeof(apple_invaders_bin));
-
-    // Re-enable interrupts
-    interrupts();
-    
-    Serial.print("Done.\n");
-    Serial.flush();
-}
 void loop() {
 }

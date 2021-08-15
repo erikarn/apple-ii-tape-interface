@@ -31,12 +31,20 @@ volatile unsigned int total_write_length = 0; // How much data to write in total
 volatile char buffer_head = 0;
 volatile char buffer_tail = 0;
 
+/*
+ * Initialize or re-initialize the buffer tracking.
+ */
 void
 buf_init(void)
 {
   buffer_head = buffer_tail = 0;
 }
 
+/*
+ * Add data to the FIFO.
+ * Returns true if added, false if it's full.
+ * This must be called in a critical section (ie, interrupts disabled.)
+ */
 bool
 buf_add_data(unsigned char val)
 {
@@ -54,6 +62,11 @@ buf_add_data(unsigned char val)
   return true;
 }
 
+/*
+ * Read data from the FIFO.
+ * Returns true if read w/ value written to *val, false if it's full.
+ * This must be called in a critical section (ie, interrupts disabled.)
+ */
 bool
 buf_read_data(unsigned char *val)
 {
@@ -93,6 +106,9 @@ new_cassette_data_init(void)
  * This includes the checksum, as the checksum will be provided
  * by the upper layer (which simplifies the data flow states at
  * this layer.)
+ * 
+ * This must be set before data is queued and the cassette play back
+ * is started.
  */
 void
 new_cassette_data_set_length(unsigned int val)
@@ -102,6 +118,12 @@ new_cassette_data_set_length(unsigned int val)
 
 /*
  * Set the header period length.
+ * 
+ * This is in units of 128 x 770Hz cycles.
+ * (Thus 10 seconds is around 31 cycles.)
+ * 
+ * This must be set before data is queued and the cassette play back
+ * is started.
  */
 void
 new_cassette_period_length_set(char val)
@@ -111,6 +133,9 @@ new_cassette_period_length_set(char val)
 
 /*
  * Set the wait time before sending the header, in 100mS increments.
+ * 
+ * This must be set before data is queued and the cassette play back
+ * is started.
  */
 void
 new_cassette_period_set_pre_blank(char val)
@@ -120,6 +145,9 @@ new_cassette_period_set_pre_blank(char val)
 
 /*
  * Set the wait time after sending the header, in 100mS increments.
+ * 
+ * This must be set before data is queued and the cassette play back
+ * is started.
  */
 void
 new_cassette_period_set_post_blank(char val)
@@ -145,6 +173,10 @@ new_cassette_data_add_byte(unsigned char val)
   return r;
 }
 
+/*
+ * Set the speaker pin state.
+ * 0 is low, anything else is high (but please use 1.)
+ */
 void
 pin_set(char val)
 {
@@ -152,13 +184,18 @@ pin_set(char val)
   pin_state = val;
 }
 
+/*
+ * Flip the pin state.
+ */
 void
 pin_flip(void)
 {
   pin_set(! pin_state);
 }
 
-// ISR for timer1 for pin flipping
+/*
+ * ISR for Timer1 that drives the playback state machine.
+ */
 void
 cassette_new_isr(void)
 {
@@ -328,7 +365,6 @@ done:
     }
 #else
       Timer1.setPeriod(next_timer_interval);
-
 #endif
   }
   interrupts();
