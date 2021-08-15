@@ -240,7 +240,7 @@ cassette_new_isr(void)
     pin_set(0);
     if (current_mode_arg == 0) {
       current_mode = CURRENT_MODE_HEADER;
-      current_mode_arg = config_period;
+      current_mode_arg = config_period * 128L;
       next_timer_interval = 650;
     } else {
       current_mode_arg--;
@@ -342,8 +342,19 @@ void
 cassette_new_start(void)
 {
   current_mode = CURRENT_MODE_PRE_BLANK;
-  current_mode_arg  = config_pre_blank_period;
+  current_mode_arg = config_pre_blank_period;
   pin_set(0);
   Timer1.setPeriod(100);
   Timer1.start();
+}
+
+/*
+ * Used to get the current state.
+ * 
+ * It's not safe to base decisions on anything other than "am I finished."
+ */
+char
+cassette_new_get_state(void)
+{
+  return current_mode;
 }

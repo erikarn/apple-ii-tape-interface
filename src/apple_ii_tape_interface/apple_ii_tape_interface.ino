@@ -27,7 +27,7 @@ void setup() {
    * data file and know how long of a header we need to provide!
    */
   new_cassette_data_init();
-  new_cassette_period_length_set(16); // XXX should be 128 normally!
+  new_cassette_period_length_set(128); // XXX should be 128 normally!
   new_cassette_period_set_pre_blank(10);
   new_cassette_period_set_post_blank(10);
 
@@ -52,8 +52,8 @@ void setup() {
     checksum ^= buf[0];
     
     j++;
-    if (j == 16) {
-          Serial.println(".");
+    if (j == 128) {
+          Serial.print(".");
           j = 0;
     }
   }
@@ -67,6 +67,10 @@ void setup() {
   Serial.println("\n--\nDone.");
 
   // Now wait until the state is NONE
+  while (cassette_new_get_state() != 0) {
+    delay(1);
+  }
+  Serial.println("--\nFinished sending.");
 }
 
 void
