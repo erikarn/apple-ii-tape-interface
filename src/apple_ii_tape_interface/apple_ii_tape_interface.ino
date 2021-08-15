@@ -1,87 +1,87 @@
+#include "config.h"
 
-#include "apple_invaders.h"
+#include "cassette.h"
+#include "buttons.h"
 
-// Speaker on D2
-#define SPEAKER_PIN 2
+//#include "apple_invaders_disp.h"
 
 // quick hack - for now, manually need to load this at 0x3fd; I'll look
 // into a c2d style loader wrapper later
 
-
-// Write out a header
-// each period here is 128 * 1300uS, so 166mS.
-void
-cassette_header(unsigned short periods)
-{
-  // Header tone - 770Hz
-  for (int i = 0; i < periods*128; i++) {
-    digitalWrite(SPEAKER_PIN, HIGH);
-    delayMicroseconds(650);
-    digitalWrite(SPEAKER_PIN, LOW);
-    delayMicroseconds(650);
-  }
-
-  // Sync pulse; one half cycle at 2500hz and then 2000hz
-  digitalWrite(SPEAKER_PIN, HIGH);
-  delayMicroseconds(200);
-  digitalWrite(SPEAKER_PIN, LOW);
-  delayMicroseconds(250);
-}
-
-void
-cassette_write_byte(unsigned char val)
-{
-  //Serial.print(val); Serial.print(":");
-  for (unsigned char i = 8; i != 0; --i) {
-    digitalWrite(SPEAKER_PIN, HIGH);
-    delayMicroseconds((val & _BV(i-1)) ? 500 : 250);
-    digitalWrite(SPEAKER_PIN, LOW);
-    delayMicroseconds((val & _BV(i-1)) ? 500 : 250);
-  }
-}
-
-void
-cassette_write_block_progmem(const uint8_t *ptr, unsigned short len)
-{
-  unsigned char checksum = 0xff, val = 0;
-  for (unsigned short i = 0; i < len; i++) {
-    val = pgm_read_byte(ptr + i);
-    cassette_write_byte(val);
-    checksum ^= val;
-  }
-  cassette_write_byte(checksum);
-  digitalWrite(SPEAKER_PIN, HIGH);
-  delay(10); // Yes, 10ms
-  digitalWrite(SPEAKER_PIN, LOW);
-  
-}
-
-void
-cassette_setup(void)
-{
-  Serial.print("Cassette setup\n");
-  pinMode(SPEAKER_PIN, OUTPUT);
-  digitalWrite(SPEAKER_PIN, LOW);
-}
+static const PROGMEM uint8_t apple_invaders_bin[] = { 0x1, 0x2, 0x3, 0x4 };
 
 void setup() {
+  unsigned char checksum = 0xff;
+  long file_size;
+  
   Serial.begin(9600);
+  display_setup();
   cassette_setup();
+  cassette_new_init();
+  buttons_setup();
+  display_clear();
+  file_setup();
+
+  /* 
+   * XXX TODO - ideally we'd only be doing this once we've parsed the 
+   * data file and know how long of a header we need to provide!
+   */
+  new_cassette_data_init();
+  new_cassette_period_length_set(16); // XXX should be 128 normally!
+  new_cassette_period_set_pre_blank(10);
+  new_cassette_period_set_post_blank(10);
+
+  // For now, pre-load a single file
+  file_open();
+  file_size = file_get_size();
+  new_cassette_data_set_length(file_size + 1L);
+
+  // Start the cassette playback with the above info
+  cassette_new_start();
+
+  int i, j = 0;
+  unsigned char buf[1];
+
+  // Start immediately filling the FIFO with data!
+  while (file_read_bytes(buf, 1) == 1) {
+    //Serial.print(buf[0] & 0xff, HEX);
+
+    while (new_cassette_data_add_byte(buf[0]) != true) {
+      delay(1);
+    }
+    checksum ^= buf[0];
+    
+    j++;
+    if (j == 16) {
+          Serial.println(".");
+          j = 0;
+    }
+  }
+
+  // Send "checksum" byte
+  while (new_cassette_data_add_byte(checksum) != true) {
+    delay(1);
+  }
+
+  file_close();
+  Serial.println("\n--\nDone.");
+
+  // Now wait until the state is NONE
 }
 
-void loop() {
-  static char do_output = 0;
- 
-  // put your main code here, to run repeatedly:
-  if (do_output == 0) {
+void
+send_file_blocking(void)
+{
     Serial.print("Starting send\n");
     Serial.print("File size: ");
     Serial.print(sizeof(apple_invaders_bin));
     Serial.print("\n");
-    do_output = 1;
+    Serial.flush();
+
+    // Disable interrupts during sending audio
+    noInterrupts();
 
     // 128 periods before data block
-    noInterrupts();
     cassette_header(128);
 
     // For now our only data block is the program we've hard coded, it needs
@@ -92,8 +92,12 @@ void loop() {
     // 3FD.537CR 3FDG
     //
     cassette_write_block_progmem(apple_invaders_bin, sizeof(apple_invaders_bin));
-    interrupts();
-    Serial.print("Done.\n");
-  }
 
+    // Re-enable interrupts
+    interrupts();
+    
+    Serial.print("Done.\n");
+    Serial.flush();
+}
+void loop() {
 }

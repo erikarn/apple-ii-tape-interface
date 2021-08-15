@@ -1,3 +1,6 @@
+#ifndef __APPLE_INVADERS_DISP_H__
+#define __APPLE_INVADERS_DISP_H__
+
 /*
  * This is simply the display portion so I can
  * quickly test if things are working without
@@ -134,3 +137,5 @@ const PROGMEM uint8_t apple_invaders_bin[] = {
 0xA0,0xA0,0xA0,0xA0,0xA0,0xA0,0xA0,0xA0,
 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 };
+
+#endif /* __APPLE_INVADERS_DISP_H__ */

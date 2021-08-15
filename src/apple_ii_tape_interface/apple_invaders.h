@@ -1,3 +1,6 @@
+#ifndef __APPLE_INVADERS_H__
+#define __APPLE_INVADERS_H__
+
 // Starts at 0x3fd
 
 const PROGMEM uint8_t apple_invaders_bin[] = {
@@ -2549,3 +2552,5 @@ const PROGMEM uint8_t apple_invaders_bin[] = {
 0xFF,0xFF,0x00,0x00,0xFF,
 
 };
+
+#endif /* __APPLE_INVADERS_H__ */
