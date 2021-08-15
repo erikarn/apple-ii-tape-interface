@@ -31,8 +31,9 @@ void setup() {
   new_cassette_period_set_pre_blank(10);
   new_cassette_period_set_post_blank(10);
 
-  // For now, pre-load a single file
-  file_open();
+  // For now, pre-load a single file - apple_invaders.bin
+  // to load/run in monitor - 3FD.537CR 3FDG
+  file_open("apple_invaders.bin");
   file_size = file_get_size();
   new_cassette_data_set_length(file_size + 1L); // Include the checksum byte!
 

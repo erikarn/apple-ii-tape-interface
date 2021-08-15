@@ -19,9 +19,9 @@ file_setup(void)
 }
 
 void
-file_open(void)
+file_open(const char *file)
 {
-  entry.open("apple_invaders.bin", O_RDONLY);
+  entry.open(file, O_RDONLY);
 }
 
 void

@@ -278,7 +278,7 @@ cassette_new_isr(void)
      * bits to shift we consume another byte.
      */
      pin_flip();
-     if (current_byte & (1 << current_bit_pos)) {
+     if (current_byte & (1U << current_bit_pos)) {
        next_timer_interval = 500;
      } else {
        next_timer_interval = 250;
