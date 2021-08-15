@@ -164,7 +164,7 @@ cassette_new_isr(void)
 {
   unsigned long fudgeTime = micros(); //fudgeTime is used to reduce length of the next period by the time taken to process the ISR
 
-  long next_timer_interval = 0;
+  unsigned long next_timer_interval = 0;
 
   noInterrupts();
 
@@ -285,8 +285,7 @@ cassette_new_isr(void)
      }
 
      if (pin_state == 0) {
-      // Next bit
-      current_bit_pos--;
+      // See if we're at bit 0 - will need to get a new byte
       if (current_bit_pos == 0) {
         total_write_length--;
 
@@ -303,6 +302,8 @@ cassette_new_isr(void)
           next_timer_interval = 0;
           current_mode = CURRENT_MODE_NONE;
         }
+      } else {
+              current_bit_pos--;
       }
      }
      goto done;
@@ -317,12 +318,18 @@ done:
     pin_set(0);
   } else {
     fudgeTime = micros() - fudgeTime; //Compensate for stupidly long ISR
+#if 1
     if (next_timer_interval < fudgeTime) {
       // XXX shouldn't happen unless someone explicitly wanted a period of '1'
       Timer1.setPeriod(1);
     } else {
+      next_timer_interval += 12; // from tzxduino - what the heck is this fudging for? It seems needed, but why?!
       Timer1.setPeriod(next_timer_interval - fudgeTime);
     }
+#else
+      Timer1.setPeriod(next_timer_interval);
+
+#endif
   }
   interrupts();
 }

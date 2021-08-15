@@ -27,7 +27,7 @@ void setup() {
    * data file and know how long of a header we need to provide!
    */
   new_cassette_data_init();
-  new_cassette_period_length_set(64); // ~ 10 seconds
+  new_cassette_period_length_set(31); // ~ 10 seconds
   new_cassette_period_set_pre_blank(10);
   new_cassette_period_set_post_blank(10);
 
@@ -46,7 +46,6 @@ void setup() {
   // Start immediately filling the FIFO with data!
   while (file_read_bytes(buf, 1) == 1) {
     //Serial.print(buf[0] & 0xff, HEX);
-
     while (new_cassette_data_add_byte(buf[0]) != true) {
       delay(1);
     }
