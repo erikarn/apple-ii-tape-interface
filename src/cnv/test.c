@@ -9,7 +9,7 @@
 
 #define TYPE_BYTE 0xef
 
-#define HEADER_BYTE 0x01
+#define PAUSE_BYTE 0x01
 #define DATA_BYTE 0x02
 #define DONE_BYTE 0x03
 
@@ -31,24 +31,21 @@ main(int argc, const char *argv[])
   if (fd < 0)
     err(1, "open");
 
+  printf("size: %u\n", size);
+
   (void) lseek(fd, 0, SEEK_SET);
 
-  /* Write out a basic fixed header for now */
-
-  /* Header - 128 periods - 1 byte field, number of periods */
-  buf[0] = TYPE_BYTE;
-  buf[1] = HEADER_BYTE;
-  buf[2] = 0x01;
-  buf[3] = 0x00;
-  buf[4] = 0x80; /* number of periods */
-  write(fd, buf, 5);
-
-  /* Data - two byte size, followed by the data */
+  /* Data - two byte size, header period, pre-blank, post-blank, followed by the data */
   buf[0] = TYPE_BYTE;
   buf[1] = DATA_BYTE;
-  buf[2] = size & 0xff;
-  buf[3] = (size >> 8) & 0xff;
+  buf[2] = (size + 3) & 0xff;
+  buf[3] = ((size + 3) >> 8) & 0xff;
+  // And now the data - including our custom header
+  buf[4] = 31; // Periods
+  buf[5] = 10; // Pre-blank
+  buf[6] = 10; // Post-blank
   write(fd, buf, 4);
+
   write(fd, apple_invaders_bin, size);
 
   /* Done */
