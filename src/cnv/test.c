@@ -27,7 +27,7 @@ main(int argc, const char *argv[])
   int fd;
   uint8_t buf[8];
 
-  fd = open("apple_invaders.bin", O_CREAT | O_RDWR);
+  fd = open("apple_invaders.bin", O_CREAT | O_RDWR | O_TRUNC);
   if (fd < 0)
     err(1, "open");
 
@@ -44,7 +44,7 @@ main(int argc, const char *argv[])
   buf[4] = 31; // Periods
   buf[5] = 10; // Pre-blank
   buf[6] = 10; // Post-blank
-  write(fd, buf, 4);
+  write(fd, buf, 7);
 
   write(fd, apple_invaders_bin, size);
 
