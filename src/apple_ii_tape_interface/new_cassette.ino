@@ -379,6 +379,8 @@ cassette_new_init(void)
   Timer1.initialize(100000);
   Timer1.attachInterrupt(cassette_new_isr);
   Timer1.stop();
+  pinMode(SPEAKER_PIN, OUTPUT);
+  digitalWrite(SPEAKER_PIN, LOW);
 }
 
 /*
