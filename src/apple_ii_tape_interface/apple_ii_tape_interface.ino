@@ -37,9 +37,9 @@ play_tape_block(unsigned int len)
 
   // Setup for this block
   new_cassette_data_init();
-  new_cassette_period_length_set(buf[0]); // ~ 10 seconds
-  new_cassette_period_set_pre_blank(buf[1]); // 1 second
-  new_cassette_period_set_post_blank(buf[2]); // 1 second
+  new_cassette_period_length_set(buf[0]);
+  new_cassette_period_set_pre_blank(buf[1]);
+  new_cassette_period_set_post_blank(buf[2]);
 
   // Rest of the length is the tape data itself
   len -= 3;
@@ -75,7 +75,7 @@ play_tape_block(unsigned int len)
   while (new_cassette_data_add_byte(checksum) != true) {
     delay(1);
   }
-  Serial.println("TAPE: play block done.");
+  Serial.println("\nTAPE: play block done.");
 }
 
 // Play a tape
@@ -88,8 +88,9 @@ play_tape(void)
   unsigned char buf[2];
   unsigned char hdr, h_type;
   unsigned int len;
+  bool run_loop = true;
 
-  while (1) {
+  while (run_loop == true) {
     // read header and type and length
     if (file_read_bytes(buf, 2) != 2) {
       Serial.println("ERR: out of hdr bytes");
@@ -116,13 +117,14 @@ play_tape(void)
         continue;
       case 0x03: // Done
         Serial.println("STATE: tape is done.");
+        run_loop = false;
         break;
       default:
         // Read file bytes for length, then next
-        for (; len >= 0; len++) {
+        for (; len >= 0; len--) {
           if (file_read_bytes(buf, 1) != 1) {
             Serial.println("ERR: out of field bytes");
-            return;
+            run_loop = false;
           }
         }
     }
