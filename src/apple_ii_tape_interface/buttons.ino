@@ -15,6 +15,7 @@ char
 buttons_read(void)
 {
   char ret = 0;
+  
   if (digitalRead(PLAY_BUTTON_PIN) == LOW) {
     ret |= BUTTON_FIELD_PLAY;
   }

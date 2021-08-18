@@ -4,6 +4,7 @@
 
 SdFat sd;
 SdFile entry;
+SdFile dirFile;
 
 void
 file_setup(void)
@@ -48,5 +49,62 @@ int
 file_seek_start(void)
 {
   entry.seekSet(0);
+  return 0;
+}
+
+/*
+ * Get a count of the number of files in a directory.
+ */
+int
+dir_get_file_count(void)
+{
+  int i = 0;
+
+  if (!dirFile.open("/", O_RDONLY)) {
+    Serial.println("ERROR: can't open the directory");
+    return -1;
+  }
+
+  while (entry.openNext(&dirFile, O_RDONLY)) {
+    if (entry.isSubDir() || entry.isHidden())
+      goto next;
+    if (! entry.isFile())
+      goto next;
+    i++;
+  next:
+    entry.close();
+  }
+  dirFile.close();
+  return i;
+}
+
+int
+dir_get_file_by_index(int index, char *filename, int len)
+{
+  int i = 0;
+
+  if (!dirFile.open("/", O_RDONLY)) {
+    Serial.println("ERROR: can't open the directory");
+    return -1;
+  }
+
+  while (entry.openNext(&dirFile, O_RDONLY)) {
+    if (entry.isSubDir() || entry.isHidden())
+      goto next;
+    if (! entry.isFile())
+      goto next;
+
+    if (i == index) {
+      /* Copy out as much of the filename as we can */
+      entry.getName(filename, len);
+      entry.close();
+      dirFile.close();
+      return 1;
+    }
+    i++;
+  next:
+    entry.close();
+  }
+  dirFile.close();
   return 0;
 }

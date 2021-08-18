@@ -16,6 +16,10 @@
 
 char current_play_state = PLAY_STATE_NONE;
 
+int current_ui_file = -1;
+int current_ui_filecount = -1;
+char current_ui_filename[20];
+
 // quick hack - for now, manually need to load this at 0x3fd; I'll look
 // into a c2d style loader wrapper later
 
@@ -132,6 +136,43 @@ play_tape(void)
   Serial.println("INFO: play_tape done.");  
 }
 
+void
+ui_init_first_file(void)
+{
+  if (current_ui_file != -1) {
+    return;
+  }
+  int fc = dir_get_file_count();
+  if (fc < 0) {
+    return;
+  }
+  current_ui_filecount = fc;
+  if (current_ui_filecount == 0) {
+    // No files that can be displayed
+    return;
+  }
+
+  // Read the first filename
+  fc = dir_get_file_by_index(0, current_ui_filename, 20);
+  if (fc <= 0) {
+    return;
+  }
+  current_ui_file = 0;
+
+  // Ok, we're ready - we have a file count and filename!
+}
+
+void
+ui_display_current_file(void)
+{
+  if (current_ui_file == -1) {
+    Serial.println("Current file: <unavailable>");
+    return;
+  }
+  Serial.print("Current file: ");
+  Serial.println(current_ui_filename);
+}
+
 void setup() {
   long file_size;
   
@@ -141,13 +182,16 @@ void setup() {
   buttons_setup();
   display_clear();
   file_setup();
+  ui_init_first_file();
 
+  ui_display_current_file();
 
+#if 0
   // For now, pre-load a single file - apple_invaders.bin
   // to load/run in monitor - 3FD.537CR 3FDG
   // the data payload is 20352 bytes, the rest are the header bits
   
-  file_open("apple_invaders.bin");
+  file_open("apple_panic.bin");
   
   play_tape();
 
@@ -159,8 +203,70 @@ void setup() {
   }
   Serial.println("--\nFinished sending.");
   file_close();
+#endif
 }
 
+unsigned long button_millis = 0;
+
+void
+ui_loop(void)
+{
+    if (millis() - button_millis < 50) {
+      return;
+    }
+    button_millis = millis();
+    
+  char btn = buttons_read();
+
+  if (btn & BUTTON_FIELD_PREV) {
+    if ((current_ui_file != -1) && (current_ui_filecount != -1) && (current_ui_file > 0)) {
+      current_ui_file--;
+      if (dir_get_file_by_index(current_ui_file, current_ui_filename, 20) != 1) {
+        // XXX ew, need a proper "this index is busted"
+        current_ui_filename[0] = '*';
+        current_ui_filename[1] = '!';
+      }
+      ui_display_current_file();
+    }
+
+    while (buttons_read() & BUTTON_FIELD_PREV) {
+      delay(50);
+    }
+  }
+  if (btn & BUTTON_FIELD_NEXT) {
+    if ((current_ui_file != -1) && (current_ui_filecount != -1) && (current_ui_file < current_ui_filecount - 1)) {
+      current_ui_file++;
+      if (dir_get_file_by_index(current_ui_file, current_ui_filename, 20) != 1) {
+        // XXX ew, need a proper "this index is busted"
+        current_ui_filename[0] = '*';
+        current_ui_filename[1] = '!';
+      }
+      ui_display_current_file();
+    }
+
+    while (buttons_read() & BUTTON_FIELD_NEXT) {
+      delay(50);
+    }
+  }
+
+  if (btn & BUTTON_FIELD_PLAY) {
+    Serial.println("PLAY");
+     while (buttons_read() & BUTTON_FIELD_PLAY) {
+      delay(50);
+    }
+  }
+
+  
+  if (btn & BUTTON_FIELD_STOP) {
+    Serial.println("STOP");
+     while (buttons_read() & BUTTON_FIELD_STOP) {
+      delay(50);
+    }
+  }
+  
+}
 
 void loop() {
+
+  ui_loop();
 }
