@@ -42,6 +42,23 @@ play_tape_check_stop_button(void)
   return false;
 }
 
+// Should unify this somehow to save space
+bool
+play_tape_check_play_button(void)
+{
+  if (millis() - button_millis < 50) {
+    return false;
+  }
+  button_millis = millis();
+    
+  char btn = buttons_read();
+  if (btn & BUTTON_FIELD_PLAY) {
+    return true;
+  }
+  return false;
+}
+
+
 /*
  * play a tape data block
  * Returns true if completed, false if there was an error and we should
@@ -51,13 +68,13 @@ bool
 play_tape_block(unsigned int len)
 {
   // Consume the rest of the header - periods, pre-blank, post-blank
-  unsigned char buf[3];
+  unsigned char buf[8];
   unsigned char i, j = 0;
   unsigned char checksum = 0xff;
   unsigned int l;
+  unsigned int start_addr, end_addr;
 
-
-  if (file_read_bytes(buf, 3) != 3) {
+  if (file_read_bytes(buf, 7) != 7) {
     Serial.println("ERR: not enough data in tape header");
     return false;
   }
@@ -68,10 +85,27 @@ play_tape_block(unsigned int len)
   new_cassette_period_set_pre_blank(buf[1]);
   new_cassette_period_set_post_blank(buf[2]);
 
+  start_addr = (unsigned int) buf[4] << 8 | buf[3];
+  end_addr = (unsigned int) buf[6] << 8 | buf[5];
+
+  Serial.print("Load: ");
+  Serial.print(start_addr, HEX);
+  Serial.print(".");
+  Serial.print(end_addr, HEX);
+  Serial.print("R ");
+  Serial.print(start_addr, HEX);
+  Serial.println("G");
+
   // Rest of the length is the tape data itself
-  len -= 3;
+  len -= 7;
+
+  // Wait for play to be pressed again
+  while (play_tape_check_play_button() == false)
+    ;
 
   new_cassette_data_set_length(len + 1L); // Include the checksum byte!
+
+  Serial.println("INFO: starting tape playback!");
 
   // Start the cassette playback with the above info
   cassette_new_start();
