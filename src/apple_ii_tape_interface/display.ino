@@ -23,14 +23,16 @@ display_line1(const char *f)
   lcd.print(f);
 }
 
+// XXX de-dup
 void
-display_line1_f(char *f)
+display_line1_f(const __FlashStringHelper *c)
 {
-  char i = 0, j;
+  char j;
+  PGM_P p = reinterpret_cast<PGM_P>(c);
+
   lcd.setCursor(0, 0);
-  while ((j = pgm_read_byte(f + i)) != 0) {
+  while ((j = pgm_read_byte(p++)) != 0) {
     lcd.print(j);
-    i++;
   }
 }
 
@@ -42,12 +44,6 @@ display_line2(const char *f)
 }
 
 void
-display_line2_blank(void)
-{
-    display_line2("                ");
-}
-
-void
 display_line2_at(char pos, const char *f)
 {
   lcd.setCursor(pos, 1);
@@ -55,12 +51,20 @@ display_line2_at(char pos, const char *f)
 }
 
 void
-display_line2_f(char * f)
+display_line2_f(const __FlashStringHelper *c)
 {
-  char i = 0, j;
+  char j;
+  PGM_P p = reinterpret_cast<PGM_P>(c);
+
   lcd.setCursor(0, 1);
-  while ((j = pgm_read_byte(f + i)) != 0) {
+  while ((j = pgm_read_byte(p++)) != 0) {
     lcd.print(j);
-    i++;
   }
+}
+
+
+void
+display_line2_blank(void)
+{
+    display_line2_f(F("                "));
 }

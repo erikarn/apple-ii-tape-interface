@@ -76,7 +76,7 @@ ui_display_play(void)
 {
   Serial.println(F("PLAY"));
   display_line2_blank();
-  display_line2("PLAY:");
+  display_line2_f(F("PLAY:"));
 }
 /*
  * play a tape data block
