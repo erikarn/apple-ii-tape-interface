@@ -406,3 +406,26 @@ cassette_new_get_state(void)
 {
   return current_mode;
 }
+
+/*
+ * Forcibly stop playback entirely.
+ * 
+ * This for now just stops the timer but doesn't reset the playback state.
+ */
+void
+cassette_new_force_stop(void)
+{
+    Timer1.stop();
+}
+
+/*
+ * Forcibly restart playback.
+ * 
+ * This doesn't reset the state, it'll just start the timer again and hope that
+ * things will do the right thing.
+ */
+void
+cassette_new_force_start(void)
+{
+  Timer1.start();
+}

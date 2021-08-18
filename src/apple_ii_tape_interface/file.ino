@@ -78,6 +78,12 @@ dir_get_file_count(void)
   return i;
 }
 
+/*
+ * Get a file by index.
+ * 
+ * This gets the filename and also leaves the file open in case we
+ * wish to read from it.
+ */
 int
 dir_get_file_by_index(int index, char *filename, int len)
 {
@@ -87,7 +93,9 @@ dir_get_file_by_index(int index, char *filename, int len)
     Serial.println("ERROR: can't open the directory");
     return -1;
   }
-
+  
+  entry.close();
+  
   while (entry.openNext(&dirFile, O_RDONLY)) {
     if (entry.isSubDir() || entry.isHidden())
       goto next;
@@ -97,7 +105,8 @@ dir_get_file_by_index(int index, char *filename, int len)
     if (i == index) {
       /* Copy out as much of the filename as we can */
       entry.getName(filename, len);
-      entry.close();
+      /* Leave the file open in case this is what we're opening */
+      //entry.close();
       dirFile.close();
       return 1;
     }
@@ -107,4 +116,13 @@ dir_get_file_by_index(int index, char *filename, int len)
   }
   dirFile.close();
   return 0;
+}
+
+/*
+ * Rewind to the beginning of the file.
+ */
+bool
+file_seek_beginning(void)
+{
+  return entry.seekSet(0);
 }

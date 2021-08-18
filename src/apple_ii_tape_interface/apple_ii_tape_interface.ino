@@ -20,11 +20,34 @@ int current_ui_file = -1;
 int current_ui_filecount = -1;
 char current_ui_filename[20];
 
+// Used to determine whether to check for a button press
+unsigned long button_millis = 0;
+
+
 // quick hack - for now, manually need to load this at 0x3fd; I'll look
 // into a c2d style loader wrapper later
 
-// play a tape data block
-void
+bool
+play_tape_check_stop_button(void)
+{
+  if (millis() - button_millis < 50) {
+    return false;
+  }
+  button_millis = millis();
+    
+  char btn = buttons_read();
+  if (btn & BUTTON_FIELD_STOP) {
+    return true;
+  }
+  return false;
+}
+
+/*
+ * play a tape data block
+ * Returns true if completed, false if there was an error and we should
+ * abort the rest of the playback.
+ */
+bool
 play_tape_block(unsigned int len)
 {
   // Consume the rest of the header - periods, pre-blank, post-blank
@@ -36,7 +59,7 @@ play_tape_block(unsigned int len)
 
   if (file_read_bytes(buf, 3) != 3) {
     Serial.println("ERR: not enough data in tape header");
-    return;
+    return false;
   }
 
   // Setup for this block
@@ -59,9 +82,15 @@ play_tape_block(unsigned int len)
 
   // Start immediately filling the FIFO with data!
   for (l = 0; l < len; l++) {
+    // XXX Check for stop button - total hack for now!
+    if (play_tape_check_stop_button() == true) {
+      cassette_new_force_stop();
+      return false;
+    }
+
     if (file_read_bytes(buf, 1) != 1) {
       Serial.println("ERR: ran out of data bytes");
-      break;
+      return false;
     }
     //Serial.print(buf[0] & 0xff, HEX);
     while (new_cassette_data_add_byte(buf[0]) != true) {
@@ -80,34 +109,60 @@ play_tape_block(unsigned int len)
     delay(1);
   }
   Serial.println("\nTAPE: play block done.");
+  return true;
 }
 
-// Play a tape
-// This blocks and will need to check for the UI in its main loop
-// It also should only be called once the file is open.
-//
-void
+/*
+ * Play a tape
+ * This blocks and will need to check for the UI in its main loop
+ * It also should only be called once the file is open.
+ * 
+ * Returns true if the tape was played correctly, false if
+ * we hit an error.
+ */
+bool
 play_tape(void)
 {
   unsigned char buf[2];
   unsigned char hdr, h_type;
   unsigned int len;
   bool run_loop = true;
+  bool retval = true;
 
+  /*
+   * Seek to the beginning; if we fail then treat it as the file
+   * being unselected or unavailable.
+   */
+  if (file_seek_beginning() == false) {
+    retval = false;
+    goto done;
+  }
+
+  retval = true;
   while (run_loop == true) {
+    // XXX - Check for stop button; total hack!
+    if (play_tape_check_stop_button() == true) {
+      cassette_new_force_stop();
+      retval = true; // Stopping isn't an error here
+      break;
+    }
+    
     // read header and type and length
     if (file_read_bytes(buf, 2) != 2) {
       Serial.println("ERR: out of hdr bytes");
+      retval = false;
       break;
     }
     hdr = buf[0]; h_type = buf[1];
     if (hdr != 0xef) {
       Serial.println("ERR: invalid header byte");
+      retval = false;
       break;
     }
 
     if (file_read_bytes(buf, 2) != 2) {
       Serial.println("ERR: out of len bytes");
+      retval = false;
       break;
     }
     len = ((int) buf[1]) << 8 | buf[0];
@@ -117,11 +172,17 @@ play_tape(void)
         Serial.println("TODO: implement pause here!");
         continue;
       case 0x02: // Data
-        play_tape_block(len);
+        if (play_tape_block(len) == false) {
+          // XXX would be nice to know if we were stopped, or an error
+          run_loop = false;
+          retval = false;
+          break;
+        }
         continue;
       case 0x03: // Done
         Serial.println("STATE: tape is done.");
         run_loop = false;
+        retval = true;
         break;
       default:
         // Read file bytes for length, then next
@@ -129,11 +190,21 @@ play_tape(void)
           if (file_read_bytes(buf, 1) != 1) {
             Serial.println("ERR: out of field bytes");
             run_loop = false;
+            retval = false;
+            break;
           }
+          break;
         }
     }
   }
-  Serial.println("INFO: play_tape done.");  
+done:
+  Serial.print("INFO: play_tape done: ");
+  if (retval) {
+    Serial.println("OK.");
+  } else { 
+    Serial.println("Error.");
+  }
+  return retval;
 }
 
 void
@@ -206,7 +277,6 @@ void setup() {
 #endif
 }
 
-unsigned long button_millis = 0;
 
 void
 ui_loop(void)
@@ -225,6 +295,7 @@ ui_loop(void)
         // XXX ew, need a proper "this index is busted"
         current_ui_filename[0] = '*';
         current_ui_filename[1] = '!';
+        current_ui_filename[2] = '\0';
       }
       ui_display_current_file();
     }
@@ -254,6 +325,9 @@ ui_loop(void)
      while (buttons_read() & BUTTON_FIELD_PLAY) {
       delay(50);
     }
+
+    // For now this is blocking, it'll have to poll STOP itself
+    play_tape();
   }
 
   
