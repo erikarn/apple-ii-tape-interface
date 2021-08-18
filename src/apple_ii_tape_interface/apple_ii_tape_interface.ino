@@ -65,7 +65,7 @@ play_tape_check_play_button(void)
  * abort the rest of the playback.
  */
 bool
-play_tape_block(unsigned int len)
+play_tape_block(unsigned int len, bool play_wait)
 {
   // Consume the rest of the header - periods, pre-blank, post-blank
   unsigned char buf[8];
@@ -100,9 +100,10 @@ play_tape_block(unsigned int len)
   len -= 7;
 
   // Wait for play to be pressed again
-  while (play_tape_check_play_button() == false)
-    ;
-
+  if (play_wait == true) {
+    while (play_tape_check_play_button() == false)
+      ;
+  }
   new_cassette_data_set_length(len + 1L); // Include the checksum byte!
 
   Serial.println("INFO: starting tape playback!");
@@ -162,6 +163,7 @@ play_tape(void)
   unsigned int len;
   bool run_loop = true;
   bool retval = true;
+  bool play_wait_flag = true;
 
   /*
    * Seek to the beginning; if we fail then treat it as the file
@@ -206,12 +208,13 @@ play_tape(void)
         Serial.println("TODO: implement pause here!");
         continue;
       case 0x02: // Data
-        if (play_tape_block(len) == false) {
+        if (play_tape_block(len, play_wait_flag) == false) {
           // XXX would be nice to know if we were stopped, or an error
           run_loop = false;
           retval = false;
           break;
         }
+        play_wait_flag = false; // Don't wait to press play for subsequent blocks, we need an explicit pause
         continue;
       case 0x03: // Done
         Serial.println("STATE: tape is done.");
