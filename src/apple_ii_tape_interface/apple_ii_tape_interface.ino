@@ -50,10 +50,10 @@ ui_display_current_file(void)
   display_clear();
   if (current_ui_file == -1) {
     display_line1("<unavail>");
-    Serial.println("Current file: <unavailable>");
+    Serial.println(F("Current file: <unavailable>"));
     return;
   }
-  Serial.print("Current file: ");
+  Serial.print(F("Current file: "));
   Serial.println(current_ui_filename);
 
   display_line1(current_ui_filename);
@@ -66,7 +66,7 @@ ui_display_play_details(unsigned int start_addr, unsigned int end_addr)
   
 
   snprintf(buf, 16, "%X.%XR %XG", start_addr, end_addr, start_addr);
-  Serial.print("Load: ");
+  Serial.print(F("Load: "));
   Serial.println(buf);
   display_line2(buf);
 }
@@ -74,7 +74,7 @@ ui_display_play_details(unsigned int start_addr, unsigned int end_addr)
 void
 ui_display_play(void)
 {
-  Serial.println("PLAY");
+  Serial.println(F("PLAY"));
   display_line2_blank();
   display_line2("PLAY:");
 }
@@ -94,7 +94,9 @@ play_tape_block(unsigned int len, bool play_wait)
   unsigned int start_addr, end_addr;
 
   if (file_read_bytes(buf, 7) != 7) {
-    Serial.println("ERR: not enough data in tape header");
+    Serial.println(F("ERR: not enough data in tape header"));
+    display_line2_blank();
+    display_line2("ERR: short tapehdr");
     return false;
   }
 
@@ -125,9 +127,9 @@ play_tape_block(unsigned int len, bool play_wait)
   // Start the cassette playback with the above info
   cassette_new_start();
 
-  Serial.print("Writing ");
+  Serial.print(F("Writing "));
   Serial.print(len);
-  Serial.print(" bytes:");
+  Serial.print(F(" bytes:"));
 
   // Start immediately filling the FIFO with data!
   for (l = 0; l < len; l++) {
@@ -140,7 +142,7 @@ play_tape_block(unsigned int len, bool play_wait)
     }
 
     if (file_read_bytes(buf, 1) != 1) {
-      Serial.println("ERR: ran out of data bytes");
+      Serial.println(F("ERR: ran out of data bytes"));
       display_line2_blank();
       display_line2("ERROR: short data");
       return false;
@@ -154,11 +156,11 @@ play_tape_block(unsigned int len, bool play_wait)
     if (j % 64 == 0) {
           if (k == 0) {
             k = 1;
-            Serial.print("+");
+            Serial.print(F("+"));
             display_line2_at(6, "+");
           } else {
             k = 0;
-            Serial.print("-");
+            Serial.print(F("-"));
             display_line2_at(6, "-");
           }
        }
@@ -169,7 +171,7 @@ play_tape_block(unsigned int len, bool play_wait)
   while (new_cassette_data_add_byte(checksum) != true) {
     delay(1);
   }
-  Serial.println("\nTAPE: play block done.");
+  Serial.println(F("\nTAPE: play block done."));
   display_line2_blank();
   display_line2("DONE.");
   return true;
@@ -213,7 +215,7 @@ play_tape(void)
     
     // read header and type and length
     if (file_read_bytes(buf, 2) != 2) {
-      Serial.println("ERR: out of hdr bytes");
+      Serial.println(F("ERR: out of hdr bytes"));
       display_line2_blank();
       display_line2("ERR: hdr short");
       retval = false;
@@ -221,7 +223,7 @@ play_tape(void)
     }
     hdr = buf[0]; h_type = buf[1];
     if (hdr != 0xef) {
-      Serial.println("ERR: invalid header byte");
+      Serial.println(F("ERR: invalid header byte"));
       display_line2_blank();
       display_line2("ERR: hdr invalid");
       retval = false;
@@ -229,7 +231,7 @@ play_tape(void)
     }
 
     if (file_read_bytes(buf, 2) != 2) {
-      Serial.println("ERR: out of len bytes");
+      Serial.println(F("ERR: out of len bytes"));
       display_line2_blank();
       display_line2("ERR: len short");
       retval = false;
@@ -239,7 +241,7 @@ play_tape(void)
 
     switch (h_type) {
       case 0x01: // Pause
-        Serial.println("TODO: implement pause here!");
+        Serial.println(F("TODO: implement pause here!"));
         continue;
       case 0x02: // Data
         if (play_tape_block(len, play_wait_flag) == false) {
@@ -253,7 +255,7 @@ play_tape(void)
       case 0x03: // Done
         display_line2_blank();
         display_line2("DONE!");
-        Serial.println("STATE: tape is done.");
+        Serial.println(F("STATE: tape is done."));
         run_loop = false;
         retval = true;
         break;
@@ -261,7 +263,7 @@ play_tape(void)
         // Read file bytes for length, then next
         for (; len >= 0; len--) {
           if (file_read_bytes(buf, 1) != 1) {
-            Serial.println("ERR: out of field bytes");
+            Serial.println(F("ERR: out of field bytes"));
             display_line2_blank();
             display_line2("ERR: field short");
             run_loop = false;
@@ -273,15 +275,15 @@ play_tape(void)
     }
   }
 done:
-  Serial.print("INFO: play_tape done: ");
+  Serial.print(F("INFO: play_tape done: "));
 
   if (retval) {
-    Serial.println("OK.");
+    Serial.println(F("OK."));
     display_line2_blank();
     display_line2("DONE!");
 
   } else { 
-    Serial.println("Error.");
+    Serial.println(F("Error."));
     display_line2_blank();
     display_line2("ERROR!");
   }
@@ -328,25 +330,6 @@ void setup() {
   ui_init_first_file();
 
   ui_display_current_file();
-
-#if 0
-  // For now, pre-load a single file - apple_invaders.bin
-  // to load/run in monitor - 3FD.537CR 3FDG
-  // the data payload is 20352 bytes, the rest are the header bits
-  
-  file_open("apple_panic.bin");
-  
-  play_tape();
-
-  Serial.println("\n--\nDone.");
-
-  // Now wait until the state is NONE
-  while (cassette_new_get_state() != 0) {
-    delay(1);
-  }
-  Serial.println("--\nFinished sending.");
-  file_close();
-#endif
 }
 
 
@@ -393,7 +376,7 @@ ui_loop(void)
   }
 
   if (btn & BUTTON_FIELD_PLAY) {
-    Serial.println("PLAY");
+    Serial.println(F("PLAY"));
      while (buttons_read() & BUTTON_FIELD_PLAY) {
       delay(50);
     }
@@ -404,7 +387,7 @@ ui_loop(void)
 
   
   if (btn & BUTTON_FIELD_STOP) {
-    Serial.println("STOP");
+    Serial.println(F("STOP"));
      while (buttons_read() & BUTTON_FIELD_STOP) {
       delay(50);
     }
