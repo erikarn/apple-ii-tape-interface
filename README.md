@@ -36,6 +36,25 @@ Data is stored on a FAT formatted SD card.  This currently doesn't
 support directories, so stick your files in the root directory
 of the flash drive.
 
+## Wiring
+
+I'll eventually make a schematic.  But honestly, it's pretty simple.
+The pins themselves are described in config.h !
+
+ * An arduino nano
+ * D2 is the speaker output - put a 3.9k resistor between it and
+   the audio output jack, and then a 1k resistor between the audio jack
+   and ground. This 3.9k and 1k resistor forms a voltag divider that
+   should deliver around 1v peak to peak of audio.
+ * The four buttons (PLAY, STOP, PREV, NEXT) are wired to ground.
+   The software configures the input pins with a pull-up.
+   Wire D3 to PLAY, D4 to STOP, D5 to PREV, D6 to NEXT.
+ * The SD card is an Adafruit SPI SD card - MOSI on pin 11, MISO on pin 12,
+   SCK on pin 13, CS/SS on pin 10.  No card detect is currently used.
+ * The i2c 16x2 LCD hooks up to the i2c pins - SDA on A4, SCL on A5.
+
+And that's it!
+
 ## Controls
 
 The four buttons are:
