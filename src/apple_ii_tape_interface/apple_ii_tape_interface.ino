@@ -62,10 +62,10 @@ ui_display_current_file(void)
 void
 ui_display_play_details(unsigned int start_addr, unsigned int end_addr)
 {
-  char buf[17] = { 0 };
+  char buf[18] = { 0 };
   
 
-  snprintf(buf, 16, "%X.%XR %XG", start_addr, end_addr, start_addr);
+  snprintf(buf, 17, "%X.%XR %XG", start_addr, end_addr, start_addr);
   Serial.print(F("Load: "));
   Serial.println(buf);
   display_line2(buf);

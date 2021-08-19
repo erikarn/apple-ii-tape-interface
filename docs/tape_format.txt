@@ -1,0 +1,53 @@
+# Tape binary format
+
+
+The tape binary format is a simple TLV (type length value) block format.
+The header is fixed and includes a 2 byte length field for the subsequent
+data.  Unknown fields can be skipped.
+
+All multi-byte fields are in little endian.
+
+## TLV Format
+
+The TLV format is as follows.
+
+ * A header, consisting of <TYPE_BYTE> <ID BYTE> <LENGTH WORD>
+ * Optional binary data, the length of <LENGTH WORD>
+
+ * LENGTH WORD is the length of the data portion of the field, not
+   including the TLV header itself.  It is in little endian.
+
+ * TYPE_BYTE is 0xEF
+
+ * ID BYTE is one of the following fields - PAUSE_BYTE, DATA_BYTE, DONE_BYTE
+
+### PAUSE_BYTE
+
+PAUSE_BYTE is 0x01 .  It has no optional data.
+
+It signifies to the playback software that the playback should be paused at
+this point until the PLAY button is again pressed.
+
+### DATA_BYTE
+
+DATA_BYTE is 0x02 . It has its own header and data.
+
+ * TYPE_BYTE
+ * DATA_BYTE
+ * LENGTH_WORD - word; length of subsequent header information and tape data
+ * NUMBER_PERIODS - byte; number of 128 cycle header periods. 31 is ~ 10 seconds.
+ * PRE_BLANK - byte; number of 100ms intervals to wait before starting the header.
+ * POST_BLANK - byte; number of 100ms intervals to wait once data is finished before
+   starting the next data block.
+ * START_ADDR - word; start address to load at; displayed at playback time.
+ * END_ADDR - word; end address for loading; displayed at playback time.
+ * DATA - variable length; this is the data to load into memory.
+
+For now the START_ADDR is also the entry point for the program.
+
+
+### DONE_BYTE
+
+DONE_BYTE is 0x03 . It has no optional data.
+
+It signifies that the tape playback has completed.
