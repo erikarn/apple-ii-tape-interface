@@ -65,6 +65,10 @@ The four buttons are:
  * PREV - select the previous tape.
  * NEXT - select the next tape.
 
+## Debugging
+
+Debugging is output over the USB / serial port at 115200 baud.
+
 ## Data format
 
 I'll document the data format in docs/tape_format.txt.
