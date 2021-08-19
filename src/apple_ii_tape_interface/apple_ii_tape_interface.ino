@@ -366,6 +366,7 @@ ui_loop(void)
         // XXX ew, need a proper "this index is busted"
         current_ui_filename[0] = '*';
         current_ui_filename[1] = '!';
+        current_ui_filename[2] = '\0';
       }
       ui_display_current_file();
     }
